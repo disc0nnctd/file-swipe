@@ -1,0 +1,11 @@
+fileswipe.db*
+thumbs/
+apply_status.json*
+apply.log
+__pycache__/
+
+config.json
+*.env
+*token*.json
+*.pem
+*.key

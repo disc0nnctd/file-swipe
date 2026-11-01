@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>File Swipe</title>
+<style>
+:root{--ai:#22a06b;--choose:#c99a1c;--archive:#3b7ddd;--delete:#d64545;--bg:#0f1115;--card:#1a1d24;--mut:#9aa3b2}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:#eef1f6;font:15px/1.35 system-ui,-apple-system,sans-serif;overflow:hidden;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+header{padding:10px 12px 6px}
+.row{display:flex;align-items:center;gap:8px}
+h1{font-size:16px;margin:0;flex:1;white-space:nowrap}
+.icon{background:#262a33;border:0;color:#eef1f6;border-radius:8px;padding:6px 10px;font-size:14px;white-space:nowrap}
+.icon:disabled{opacity:.35}
+select{background:#262a33;color:#eef1f6;border:0;border-radius:8px;padding:6px;max-width:38vw;min-width:0;font-size:13px}
+.prog{height:6px;background:#262a33;border-radius:3px;margin:8px 0 6px;overflow:hidden;display:flex}
+.prog i{display:block;height:100%}
+.tally{display:flex;gap:10px;font-size:12.5px;color:var(--mut);flex-wrap:wrap}
+.tally b{color:#eef1f6}
+#tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+#tabs button{background:#262a33;border:0;color:#c9d0db;border-radius:9px;padding:6px 1px;font-size:11.5px;border-bottom:3px solid transparent}
+#tabs button.on{color:#fff;background:#323846}
+#tabs button b{display:block;font-size:14px}
+#banner{margin:0 10px 6px;padding:7px 10px;border-radius:9px;font-size:12.5px;display:none}
+#stage{flex:1;position:relative;min-height:0;margin:0 10px;touch-action:none;overflow:hidden;border-radius:14px}
+#card{position:absolute;inset:0;display:flex;flex-direction:column;border-radius:14px;background:var(--card);overflow:hidden;will-change:transform}
+#pic{flex:0 0 auto;height:34%;min-height:90px;display:flex;align-items:center;justify-content:center;background:#12141a;font-size:64px;overflow:hidden}
+#pic img{width:100%;height:100%;object-fit:cover;pointer-events:none;user-select:none;-webkit-user-drag:none}
+#body{flex:1;overflow:auto;padding:12px 14px;touch-action:pan-y}
+#body h2{margin:0 0 3px;font-size:18px;word-break:break-word}
+.path{color:var(--mut);font-size:12.5px;word-break:break-word}
+.facts{font-size:13px;margin:6px 0;color:#c9d0db}
+.types{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:6px 0 2px;background:#262a33}
+.types i{display:block;height:100%}
+.legend{font-size:11.5px;color:var(--mut);display:flex;flex-wrap:wrap;gap:8px}
+.aibox{margin:10px 0;border-radius:11px;padding:10px 11px;background:#17281f;border:1px solid #2f5a3f;font-size:13.5px}
+.aibox.junk{background:#2a1a1a;border-color:#6a3030}
+.aibox.wait{background:#22242c;border-color:#3a3f4d}
+.aibox .t{font-family:ui-monospace,monospace;font-size:12px;color:#c9d0db;word-break:break-all;margin-top:4px}
+.files{font-size:12px;color:#c9d0db;margin:4px 0 0;padding-left:16px}
+.files li{margin:1px 0;word-break:break-all}
+.files span{color:var(--mut)}
+.stamp{position:absolute;top:18px;padding:6px 14px;border:4px solid;border-radius:10px;font-weight:800;font-size:21px;letter-spacing:1px;opacity:0;text-transform:uppercase;background:rgba(0,0,0,.45);pointer-events:none;z-index:2}
+#s-ai{left:16px;color:var(--ai);border-color:var(--ai);transform:rotate(-12deg)}
+#s-choose{left:50%;transform:translateX(-50%);color:var(--choose);border-color:var(--choose);white-space:nowrap}
+#s-delete{right:16px;color:var(--delete);border-color:var(--delete);transform:rotate(12deg)}
+#s-archive{left:50%;top:auto;bottom:22px;transform:translateX(-50%);color:var(--archive);border-color:var(--archive)}
+#inforow{display:flex;gap:6px;padding:7px 10px 2px}
+#inforow button{flex:1}
+#bar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;padding:6px 8px 10px}
+.act{border:0;border-radius:12px;padding:10px 4px 8px;color:#fff;font-size:15px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.act small{font-weight:400;font-size:11px;opacity:.85;line-height:1.2}
+.act .k{font-size:10px;opacity:.6;font-weight:400}
+#bd{background:var(--delete)}#ba{background:var(--archive)}#bc{background:var(--choose)}#bp{background:var(--ai)}
+#toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;max-width:94vw;transform:translateX(-50%);background:#2b303b;padding:9px 14px;border-radius:10px;font-size:13.5px;display:none;box-shadow:0 4px 18px #0008;z-index:20}
+.sheet{position:fixed;inset:0;background:#08090c;z-index:12;display:none;overflow:auto;padding:16px 16px 30px}
+.sheet h2{margin:0;font-size:19px;flex:1}
+.sec{background:var(--card);border-radius:12px;padding:13px;margin-top:12px}
+.sec h3{margin:0 0 6px;font-size:15.5px}
+.sec p,.sec li{color:#c9d0db;font-size:13.5px;margin:4px 0}
+.big{width:100%;border:0;border-radius:11px;padding:12px;font-size:15px;font-weight:700;color:#fff;margin-top:8px;text-align:left}
+.big small{display:block;font-weight:400;font-size:12px;opacity:.85}
+.big:disabled{opacity:.35}
+.dests{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dests .big{margin:0;background:#262a33}
+.dests .big.sug{outline:2px solid var(--ai)}
+input[type=text]{width:100%;background:#262a33;border:0;border-radius:9px;color:#eef1f6;padding:10px;font-size:14px;margin-top:6px}
+.mono{font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;background:#22262f;padding:7px;border-radius:7px;color:#eef1f6}
+#list{position:absolute;inset:0;overflow:auto;display:none;touch-action:pan-y}
+.li{background:var(--card);border-radius:10px;padding:9px 11px;margin-bottom:5px;font-size:13px}
+.li b{display:block;word-break:break-word}
+.li .t{font-family:ui-monospace,monospace;font-size:11px;color:var(--mut);word-break:break-all}
+.pill{display:inline-block;border-radius:20px;padding:1px 8px;font-size:11.5px;font-weight:600;margin-right:4px}
+#done{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut)}
+#done h2{color:#eef1f6}
+.opt{display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:12px;padding:12px;margin-bottom:10px;border-left:5px solid}
+.opt .g{font-size:26px;width:34px;text-align:center}
+.opt h3{margin:0 0 3px;font-size:16px}
+.opt div p{margin:0;color:#c9d0db;font-size:13.5px}
+kbd{background:#333946;border-radius:4px;padding:1px 6px;font-size:12px;color:#eef1f6}
+.keys{color:var(--mut);font-size:13px;margin:12px 0 18px;line-height:1.9}
+#gotit{position:sticky;bottom:0;box-shadow:0 -10px 20px #08090c;width:100%;padding:14px;border:0;border-radius:12px;background:#eef1f6;color:#111;font-size:16px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:4px 2px;border-bottom:1px solid #262a33}
+td.r{text-align:right;white-space:nowrap}
+.bar2{height:8px;background:#262a33;border-radius:4px;overflow:hidden;margin:8px 0}
+.bar2 i{display:block;height:100%;background:var(--ai)}
+#warn{margin:0 10px 6px;padding:8px 10px;border-radius:9px;font-size:12.5px;background:#3a2318;border-left:4px solid #e08a3c;display:none}
+</style></head>
+<body>
+<header>
+  <div class="row">
+    <h1>🗂 File Swipe</h1>
+    <select id="folder" title="Only show one folder"></select>
+    <button class="icon" id="applybtn" style="background:#1d4d36">🚚 Apply</button>
+    <button class="icon" id="undobtn" disabled>↩ Undo</button>
+    <button class="icon" id="helpbtn">?</button>
+  </div>
+  <div class="prog" id="prog"></div>
+  <div class="tally" id="tally"></div>
+  <div id="tabs"></div>
+</header>
+<div id="warn"></div>
+<div id="banner"></div>
+
+<div id="stage">
+  <div id="card">
+    <div class="stamp" id="s-ai">✅ AI pick</div>
+    <div class="stamp" id="s-choose">🎯 Choose</div>
+    <div class="stamp" id="s-delete">🗑 Delete</div>
+    <div class="stamp" id="s-archive">📦 Archive</div>
+    <div id="pic"></div>
+    <div id="body"></div>
+  </div>
+  <div id="done"></div>
+  <div id="list"></div>
+</div>
+<div id="inforow">
+  <button class="icon" id="splitbtn" title="Show each thing inside this folder as its own card">📂 Split up</button>
+  <button class="icon" id="mergebtn" title="Decide this whole folder as one card">⤴ Whole parent</button>
+  <button class="icon" id="folderbtn" title="Send everything in this folder somewhere">📚 Whole folder…</button>
+  <button class="icon" id="laterbtn" title="Skip for now">⏭ Later</button>
+</div>
+<div id="bar">
+  <button class="act" id="bd">🗑 Delete<small>don't keep</small><span class="k">swipe ← · key ←</span></button>
+  <button class="act" id="ba">📦 Archive<small>keep as-is</small><span class="k">swipe ↓ · key ↓</span></button>
+  <button class="act" id="bc">🎯 Choose<small>pick a place</small><span class="k">swipe ↑ · key ↑</span></button>
+  <button class="act" id="bp">✅ AI pick<small>where AI says</small><span class="k">swipe → · key →</span></button>
+</div>
+
+<div class="sheet" id="choose">
+  <div class="row"><h2>🎯 Where should this go?</h2><button class="icon" id="cclose">✕ Close</button></div>
+  <p class="path" id="cname"></p>
+  <div class="dests" id="dests"></div>
+  <div class="sec">
+    <h3>Folder name at the destination</h3>
+    <p>Leave empty for the automatic name (shown under each button). Jellyfin likes <b>Title (Year)</b> for movies.</p>
+    <input type="text" id="cover" placeholder="automatic">
+  </div>
+</div>
+
+<div class="sheet" id="fsheet">
+  <div class="row"><h2>📚 Whole folder</h2><button class="icon" id="fclose">✕ Close</button></div>
+  <p class="path" id="fpath"></p>
+  <p id="fcount" style="font-size:14px"></p>
+  <label style="display:flex;gap:8px;align-items:center;font-size:13.5px;color:#c9d0db"><input type="checkbox" id="fall" style="width:20px;height:20px"> Also change items here you already decided</label>
+  <div id="fbtns"></div>
+  <p style="color:var(--mut);font-size:12.5px">One tap decides every card in this folder. <b>↩ Undo</b> reverses it in one step.</p>
+</div>
+
+<div class="sheet" id="apply">
+  <div class="row"><h2>🚚 Apply decisions</h2><button class="icon" id="aclose">✕ Close</button></div>
+  <p style="color:var(--mut);font-size:13px;margin:8px 0 0">Nothing has been copied or deleted yet. This shows what will happen. Start with a <b>dry run</b>, which only lists the steps.</p>
+  <div class="sec"><h3>What will happen</h3><div id="aplan">Loading…</div></div>
+  <div class="sec"><h3>Run</h3>
+    <div id="astatus"></div>
+    <button class="big" id="dry" style="background:#3a4152">🧪 Dry run<small>lists every step, changes nothing</small></button>
+    <button class="big" id="go" style="background:var(--ai)">🚚 Start copying<small>personal files first, games last; safe to stop and run again</small></button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div class="sheet" id="help" style="z-index:15">
+  <h2 style="margin:0 0 4px;font-size:20px">How this works</h2>
+  <p style="color:var(--mut)">One card per thing on the drive: a movie, a game, a folder of documents. The local AI (running on this computer, nothing leaves it) suggests where each one belongs. You decide. <b>Nothing is copied or deleted while you swipe</b>; you review the plan under 🚚 Apply afterwards.</p>
+  <div class="opt" style="border-color:var(--ai)"><span class="g">✅</span><div><h3>Swipe right → AI pick</h3>
+    <p>Agree with the green box on the card: it goes where the AI suggests, e.g. a movie to the Jellyfin movies folder as “Inception (2010)”.</p></div></div>
+  <div class="opt" style="border-color:var(--choose)"><span class="g">🎯</span><div><h3>Swipe up ↑ Choose</h3>
+    <p>The AI is wrong, or you want another name. Pick the place yourself (Movies, Shows, Games, Music, Trading, Photos, Documents, Software, Archive) and optionally type the folder name.</p></div></div>
+  <div class="opt" style="border-color:var(--archive)"><span class="g">📦</span><div><h3>Swipe down ↓ Archive</h3>
+    <p>Keep it, but don't sort it. It's copied as-is to <b>the configured archive destination</b> with the same folder path. The safe choice when unsure.</p></div></div>
+  <div class="opt" style="border-color:var(--delete)"><span class="g">🗑</span><div><h3>Swipe left ← Delete</h3>
+    <p>Not worth keeping. On a read-only source, the item is skipped; the source remains unchanged. On a normal drive it goes to a <b>_fileswipe_trash</b> folder first, never straight to deletion.</p></div></div>
+  <div class="keys">
+    <b>📂 Split up:</b> a folder holds several different things (e.g. a “Movies” folder)? Split it, and each thing inside gets its own card.<br>
+    <b>⤴ Whole parent:</b> the opposite. Too many tiny cards from one folder? Decide the folder as one card.<br>
+    <b>📚 Whole folder…:</b> send every card in this folder to one place in one tap (e.g. all of Games → AI pick).<br>
+    <b>Undo:</b> the <b>↩ Undo</b> button, or <kbd>Z</kbd>; it works again and again, also for split/merge and whole-folder moves.<br>
+    <b>Changed your mind?</b> Use the <b>Keep / Delete</b> tabs at the top, tap an item, and decide again.<br>
+    <b>Keyboard:</b> <kbd>→</kbd> AI pick · <kbd>↑</kbd> choose · <kbd>↓</kbd> archive · <kbd>←</kbd> delete · <kbd>S</kbd> split · <kbd>L</kbd> later · <kbd>?</kbd> help<br>
+    <b>AI still thinking?</b> The box says “first guess” until the local model has looked at that card. That takes about 20 seconds per card in the background; you can swipe meanwhile.
+  </div>
+  <button id="gotit">Got it, start</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const C={ai:'var(--ai)',choose:'var(--choose)',archive:'var(--archive)',delete:'var(--delete)'};
+let S={items:[],dests:{}},mode='todo',cur=null,busy=false,later=new Set();
+const card=$('card'),stage=$('stage');
+const gb=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':b>=1e6?(b/1e6).toFixed(0)+' MB':(b/1e3).toFixed(0)+' KB';
+const enc=encodeURIComponent;
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short=t=>t?t:'';
+const KIND={video:'🎬',audio:'🎵',image:'🖼',doc:'📄',package:'📦',mixed:'🗂'};
+const TCOL={video:'#8b5cf6',audio:'#ec4899',image:'#22a06b',doc:'#3b7ddd',package:'#c99a1c',other:'#5b6170'};
+const TYPES={video:'mkv mp4 avi mov m4v wmv ts webm mpg vob m2ts flv',audio:'mp3 flac m4a ogg wav aac wma opus',image:'jpg jpeg png gif bmp webp heic tif',doc:'pdf doc docx ppt pptx xls xlsx txt csv ipynb md odt',package:'zip rar 7z iso bin exe msi dll apk cue gz tar'};
+const tOf=e=>Object.keys(TYPES).find(k=>TYPES[k].split(' ').includes(e))||'other';
+
+async function load(){S=await fetch('/list').then(r=>r.json());$('undobtn').disabled=!S.undo;folders();render()}
+const dl=x=>x.action?(x.action==='delete'?'delete':'keep'):null;
+const inMode=x=>mode==='todo'?!x.action:dl(x)===mode;
+function folders(){
+  const fs={};S.items.filter(inMode).forEach(x=>fs[x.folder]=(fs[x.folder]||0)+1);
+  const f=decodeURIComponent($('folder').value);
+  $('folder').innerHTML=`<option value="">All folders (${Object.values(fs).reduce((a,b)=>a+b,0)})</option>`+
+    Object.keys(fs).sort().map(k=>`<option value="${enc(k)}">${esc(k)} (${fs[k]})</option>`).join('');
+  $('folder').value=fs[f]?enc(f):'';
+}
+function visible(){const f=decodeURIComponent($('folder').value);
+  const v=S.items.filter(x=>inMode(x)&&(!f||x.folder===f));
+  return mode==='todo'?v.filter(x=>!later.has(x.p)).concat(v.filter(x=>later.has(x.p))):v}
+$('folder').onchange=()=>{cur=null;render()};
+
+function tally(){
+  const it=S.items,n=k=>it.filter(x=>dl(x)===k),sz=a=>a.reduce((s,x)=>s+x.size,0);
+  const keep=n('keep'),del=n('delete'),todo=it.filter(x=>!x.action);
+  const tot=sz(it)||1;
+  $('prog').innerHTML=`<i style="width:${sz(keep)/tot*100}%;background:var(--ai)"></i><i style="width:${sz(del)/tot*100}%;background:var(--delete)"></i>`;
+  const a=S.ai||{};
+  $('tally').innerHTML=`<span><b>${it.length-todo.length}</b> / ${it.length} decided</span><span>keep <b>${gb(sz(keep))}</b></span><span>delete <b>${gb(sz(del))}</b></span><span>left <b>${gb(sz(todo))}</b></span>`+
+    (a.running?`<span>🤖 AI ${a.done}/${a.total}</span>`:'');
+  const tabs=[['todo','📥 To sort',todo.length,'#888'],['keep','✅ Keep',keep.length,'var(--ai)'],['delete','🗑 Delete',del.length,'var(--delete)']];
+  $('tabs').innerHTML=tabs.map(([k,t,c,col])=>`<button data-m="${k}" class="${mode===k?'on':''}" style="border-bottom-color:${mode===k?col:'transparent'}"><b>${c}</b>${t}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;cur=null;folders();render()});
+  const off=(S.roots||[]).filter(r=>!r.mounted);
+  $('warn').style.display=off.length?'block':'none';
+  $('warn').innerHTML=off.map(r=>`⚠ <b>${esc(r.p)}</b> isn't mounted. You can still decide, but Apply needs it. Ask Claude to mount it read-only.`).join('<br>');
+}
+function aibox(x){
+  const a=x.ai;
+  if(!a)return `<div class="aibox wait">🤖 Not looked at yet…</div>`;
+  const d=S.dests[a.dest]||{label:a.dest};
+  const guess=a.model!=='llm'?' <span style="color:var(--mut)">(first guess; the AI has not looked yet)</span>':'';
+  return `<div class="aibox ${a.junk?'junk':''}">🤖 <b>${esc(d.label)}</b>${a.title?` · ${esc(a.title)}${a.year?` (${a.year})`:''}${a.season?` · season ${a.season}`:''}`:''}${guess}
+    <div style="color:var(--mut);font-size:12.5px;margin-top:2px">${esc(a.reason||'')}</div>
+    ${a.junk?`<div style="color:#ffb4b4;margin-top:4px">Looks like junk. Swipe ← if you agree.</div>`:''}
+    <div class="t">→ ${esc(short(a.target))}/</div></div>`;
+}
+function body(x){
+  const tot=Object.values(x.exts).reduce((a,b)=>a+b,0)||1,by={};
+  for(const[e,b]of Object.entries(x.exts)){const t=tOf(e);by[t]=(by[t]||0)+b}
+  const decided=x.action?`<div class="aibox" style="background:#1d2230;border-color:#3a4152">Decided: <b>${x.action==='delete'?'🗑 Delete':x.action==='archive'?'📦 Archive':x.action==='ai'?'✅ AI pick':esc(S.dests[x.action]?.label||x.action)}</b>${x.target?`<div class="t">→ ${esc(short(x.target))}/</div>`:''}</div>`:'';
+  return `<h2>${esc(x.name)}</h2><div class="path">${esc(x.root)}/${esc(x.rel)}</div>
+   <div class="facts"><b>${gb(x.size)}</b> · ${x.dir?`folder · ${x.nfiles} files`:'file'}</div>
+   <div class="types">${Object.entries(by).map(([t,b])=>`<i style="width:${b/tot*100}%;background:${TCOL[t]}"></i>`).join('')}</div>
+   <div class="legend">${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([t,b])=>`<span><span style="color:${TCOL[t]}">■</span> ${t} ${Math.round(b/tot*100)}%</span>`).join('')}</div>
+   ${decided}${aibox(x)}
+   ${x.dir?`<div style="font-size:12.5px;color:var(--mut);margin-top:8px">Inside (${x.children} entries, biggest first):</div><ul class="files" id="peek"><li><span>loading…</span></li></ul>`:''}`;
+}
+function render(){
+  tally();
+  const v=visible(),review=mode!=='todo';
+  $('banner').style.display=review?'block':'none';
+  if(review){$('banner').style.background='#1d2230';$('banner').style.borderLeft='4px solid '+(mode==='delete'?'var(--delete)':'var(--ai)');
+    $('banner').innerHTML=cur?'Deciding again. Swipe it to a new place.':`Reviewing <b>${mode==='delete'?'🗑 Delete':'✅ Keep'}</b> (${v.length}, ${gb(v.reduce((a,x)=>a+x.size,0))}). Tap one to change it.`}
+  const listMode=review&&!cur;
+  $('bar').style.display=listMode?'none':'grid';$('inforow').style.display=listMode?'none':'flex';
+  if(listMode){
+    card.style.display='none';$('done').style.display='none';$('list').style.display='block';
+    $('list').innerHTML=v.length?v.map((x,k)=>`<div class="li" data-k="${k}"><b>${KIND[x.kind]} ${esc(x.name)}</b><span class="path">${esc(x.folder)} · ${gb(x.size)}</span>${x.target?`<div class="t">→ ${esc(short(x.target))}/</div>`:''}</div>`).join('')
+      :`<p style="color:#9aa3b2;text-align:center;margin-top:40px">Nothing here yet.</p>`;
+    $('list').querySelectorAll('.li').forEach(t=>t.onclick=()=>{cur=v[+t.dataset.k];render()});return}
+  $('list').style.display='none';
+  const x=review?cur:v[0];
+  card.style.transition='none';card.style.transform='';stamps(0,0);
+  if(!x){card.style.display='none';$('done').style.display='flex';
+    $('done').innerHTML=$('folder').value?`<h2>Folder done ✅</h2><p>Pick another folder from the menu.</p>`:
+      `<h2>All decided 🎉</h2><p>Check the ✅ Keep and 🗑 Delete tabs, then open <b>🚚 Apply</b>.</p>`;return}
+  card.style.display='flex';$('done').style.display='none';
+  $('pic').innerHTML=KIND[x.kind];
+  if(['video','image'].includes(x.kind)){const im=new Image();im.onload=()=>{if(curItem()===x){$('pic').innerHTML='';$('pic').appendChild(im)}};im.src='/thumb?p='+enc(x.p)}
+  $('body').innerHTML=body(x);$('body').scrollTop=0;
+  if(x.dir)fetch('/peek?p='+enc(x.p)).then(r=>r.json()).then(k=>{const el=$('peek');if(!el||curItem()!==x)return;
+    el.innerHTML=k.slice(0,25).map(c=>`<li>${c.is_dir?'📁':'·'} ${esc(c.name)} <span>${gb(c.size)}${c.is_dir?` · ${c.nfiles} files`:''}</span></li>`).join('')+(k.length>25?`<li><span>… ${x.children-25} more</span></li>`:'')});
+  $('splitbtn').style.display=x.dir&&x.children>1?'':'none';
+  $('mergebtn').style.display=x.folder!=='(top level)'?'':'none';
+  $('mergebtn').textContent='⤴ Whole “'+x.folder.split('/').pop()+'”';
+  $('laterbtn').style.display=review?'none':'';
+}
+const curItem=()=>mode==='todo'?visible()[0]:cur;
+function stamps(dx,dy){const c=v=>Math.max(0,Math.min(1,v/110)),h=Math.abs(dx)>Math.abs(dy);
+  $('s-ai').style.opacity=h?c(dx):0;$('s-delete').style.opacity=h?c(-dx):0;$('s-archive').style.opacity=h?0:c(dy);$('s-choose').style.opacity=h?0:c(-dy)}
+async function post(u,d){return fetch(u,{method:'POST',body:JSON.stringify(d||{})}).then(r=>r.json())}
+async function decide(action,target){
+  const x=curItem();if(busy||!x)return;
+  if(action==='choose')return openChoose(x);
+  if(action==='ai'&&!x.ai)return toast('No AI suggestion yet: use 🎯 Choose or 📦 Archive');
+  busy=true;
+  card.style.transition='transform .22s ease-in';
+  card.style.transform={ai:'translateX(130%) rotate(18deg)',delete:'translateX(-130%) rotate(-18deg)',archive:'translateY(120%)'}[action]||'translateY(-120%)';
+  const r=await post('/set',{p:x.p,action,target});
+  const lab=action==='delete'?'🗑 Delete':action==='archive'?'📦 Archive':action==='ai'?'✅ '+(S.dests[x.ai.dest]?.label||''):S.dests[action].label;
+  toast(`${lab}: ${x.name}`);
+  setTimeout(async()=>{busy=false;cur=null;await load()},200);
+}
+async function undo(){const j=await post('/undo');if(!j.ok)return toast('Nothing to undo');
+  toast(j.kind==='bulk'?`↩ Undid whole-folder decision (${j.n} items)`:j.kind==='set'?'↩ Undid: '+j.p.split('/').pop():`↩ Undid ${j.kind}`);
+  later.delete(j.p);if(j.kind==='set'){mode='todo';cur=null}await load()}
+let tt;function toast(m){$('toast').textContent=m;$('toast').style.display='block';clearTimeout(tt);tt=setTimeout(()=>$('toast').style.display='none',3200)}
+
+// choose sheet
+function openChoose(x){
+  $('cname').innerHTML=`<b>${esc(x.name)}</b> · ${gb(x.size)}`;$('cover').value='';
+  const sug=x.ai&&x.ai.dest;
+  $('dests').innerHTML=Object.entries(S.dests).map(([k,d])=>`<button class="big ${k===sug?'sug':''}" data-k="${k}">${esc(d.label)}${k===sug?' 🤖':''}<small>${esc(d.note)}</small></button>`).join('');
+  $('dests').querySelectorAll('button').forEach(b=>b.onclick=()=>{const o=$('cover').value.trim();$('choose').style.display='none';decide(b.dataset.k,o||null)});
+  $('choose').style.display='block';setTimeout(()=>$('cover').blur(),0);
+}
+$('cclose').onclick=()=>$('choose').style.display='none';
+
+// split / merge / later / whole folder
+$('splitbtn').onclick=async()=>{const x=curItem();if(!x)return;const r=await post('/split',{p:x.p});toast(`📂 Split into ${r.n} cards. The AI will look at them in the background.`);cur=null;await load()};
+$('mergebtn').onclick=async()=>{const x=curItem();if(!x)return;const parent=x.p.slice(0,x.p.lastIndexOf('/'));
+  if(!confirm(`Decide the whole folder “${parent.split('/').pop()}” as one card?\nDecisions already made inside it are cleared (Undo brings them back).`))return;
+  await post('/merge',{p:parent});toast('⤴ Folder is now one card');cur=null;await load()};
+$('laterbtn').onclick=()=>{const x=curItem();if(x){later.add(x.p);render()}};
+function openFolder(){const x=curItem();if(!x)return;const f=x.folder;
+  const draw=()=>{const all=$('fall').checked,inF=S.items.filter(i=>i.folder===f),todo=inF.filter(i=>all||!i.action);
+    $('fpath').textContent=f;$('fcount').innerHTML=`<b>${inF.filter(i=>!i.action).length}</b> not decided of ${inF.length} · ${gb(todo.reduce((a,i)=>a+i.size,0))}`;
+    const opts=[['ai','✅ AI pick for each','each goes where the AI suggests','var(--ai)'],['archive','📦 Archive all','kept as-is','var(--archive)'],['delete','🗑 Delete all','not kept','var(--delete)']]
+      .concat(Object.entries(S.dests).filter(([k])=>k!=='archive').map(([k,d])=>[k,d.label+' — all',d.note,'#3a4152']));
+    $('fbtns').innerHTML=opts.map(([k,t,s,c])=>`<button class="big" data-k="${k}" style="background:${c}" ${todo.length?'':'disabled'}>${esc(t)} (${todo.length})<small>${esc(s)}</small></button>`).join('');
+    $('fbtns').querySelectorAll('button').forEach(b=>b.onclick=async()=>{const r=await post('/bulk',{folder:f,action:b.dataset.k,all});$('fsheet').style.display='none';toast(`📚 ${r.n} items decided. Undo reverses it.`);await load()})};
+  $('fall').checked=false;$('fall').onchange=draw;draw();$('fsheet').style.display='block'}
+$('folderbtn').onclick=openFolder;$('fclose').onclick=()=>$('fsheet').style.display='none';
+
+// apply sheet
+let aTimer;
+async function applyRefresh(){
+  const p=await fetch('/plan').then(r=>r.json());const g={};
+  for(const r of p.rows){const k=r.action==='delete'?'🗑 not kept':Object.entries(S.dests).find(([,d])=>r.target&&r.target.startsWith(d.dir))?.[1].label||r.action;
+    g[k]=g[k]||{n:0,b:0,done:0};g[k].n++;g[k].b+=r.size;if(r.status==='done')g[k].done++}
+  const keepB=p.rows.filter(r=>r.action!=='delete').reduce((a,r)=>a+r.size,0);
+  const free=Math.max(...Object.values(p.free));
+  $('aplan').innerHTML=`<table>${Object.entries(g).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${v.n} items</td><td class="r">${gb(v.b)}</td><td class="r">${v.done?`✅ ${v.done}`:''}</td></tr>`).join('')}</table>
+    <p>To copy: <b>${gb(keepB)}</b> · free at the destination: <b>${gb(free)}</b> ${keepB>free?'⚠ not enough room':'✅ fits'}</p>
+    ${p.unsorted?`<p style="color:#f0d27a">${p.unsorted} cards are not decided yet; they are left alone.</p>`:''}`;
+  const s=p.status;
+  if(s){const pct=s.total_bytes?Math.min(100,s.done_bytes/s.total_bytes*100):0;
+    $('astatus').innerHTML=`<p>${s.running?(s.dry?'🧪 Dry run running…':`🚚 Copying… <b>${pct.toFixed(1)}%</b> (${gb(s.done_bytes)} of ${gb(s.total_bytes)})`):(s.dry?'🧪 Last dry run finished':'Last run finished')} · ✅ ${s.ok} ⚠ ${s.failed} ⏭ ${s.skipped}</p>
+      ${s.running&&!s.dry?`<div class="bar2"><i style="width:${pct}%"></i></div>`:''}${s.current?`<p class="path">Now: ${esc(s.current)}</p>`:''}
+      ${s.errors.length?`<p style="color:#ffb4b4">${s.errors.map(esc).join('<br>')}</p>`:''}<div class="mono" style="max-height:220px;overflow:auto;white-space:pre-wrap">${esc(s.lines.join('\n'))}</div>`;
+    $('dry').disabled=$('go').disabled=s.running}
+}
+$('applybtn').onclick=()=>{$('apply').style.display='block';applyRefresh();clearInterval(aTimer);aTimer=setInterval(applyRefresh,3000)};
+$('aclose').onclick=()=>{$('apply').style.display='none';clearInterval(aTimer)};
+$('dry').onclick=async()=>{await post('/apply/start',{dry:true});setTimeout(applyRefresh,800)};
+$('go').onclick=async()=>{if(!confirm('Apply the reviewed decisions? Items may be moved or copied to their configured destinations.'))return;await post('/apply/start',{dry:false});setTimeout(applyRefresh,800)};
+
+// swipe + keys
+let sx=null,sy=0,dx=0,dy=0;
+stage.addEventListener('pointerdown',e=>{if($('list').style.display==='block'||card.style.display==='none')return;if(e.target.closest('#body')&&e.pointerType==='mouse')return;
+  sx=e.clientX;sy=e.clientY;dx=dy=0;card.style.transition='none';stage.setPointerCapture(e.pointerId)});
+stage.addEventListener('pointermove',e=>{if(sx===null)return;dx=e.clientX-sx;dy=e.clientY-sy;
+  card.style.transform=Math.abs(dx)>Math.abs(dy)?`translateX(${dx}px) rotate(${dx/18}deg)`:`translateY(${dy}px)`;stamps(dx,dy)});
+stage.addEventListener('pointerup',()=>{if(sx===null)return;sx=null;
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>90)decide(dx>0?'ai':'delete');
+  else if(dy>90)decide('archive');else if(dy<-90){card.style.transform='';stamps(0,0);decide('choose')}
+  else{card.style.transition='transform .2s';card.style.transform='';stamps(0,0)}});
+stage.addEventListener('pointercancel',()=>{sx=null;card.style.transform='';stamps(0,0)});
+$('bp').onclick=()=>decide('ai');$('bc').onclick=()=>decide('choose');$('ba').onclick=()=>decide('archive');$('bd').onclick=()=>decide('delete');
+$('undobtn').onclick=undo;
+onkeydown=e=>{if(e.target.tagName==='INPUT')return;
+  if($('help').style.display==='block'){if(e.key==='Enter'||e.key==='Escape')closeHelp();return}
+  if([...document.querySelectorAll('.sheet')].some(s=>s.style.display==='block')){if(e.key==='Escape')document.querySelectorAll('.sheet').forEach(s=>s.style.display='none');return}
+  ({ArrowRight:()=>decide('ai'),ArrowUp:()=>decide('choose'),ArrowLeft:()=>decide('delete'),ArrowDown:()=>decide('archive'),z:undo,s:()=>$('splitbtn').click(),l:()=>$('laterbtn').click(),'?':openHelp,Escape:()=>{cur=null;render()}})[e.key]?.()};
+function openHelp(){$('help').style.display='block'}
+function closeHelp(){$('help').style.display='none';localStorage.seenHelp=1}
+$('helpbtn').onclick=openHelp;$('gotit').onclick=closeHelp;
+if(!localStorage.seenHelp)openHelp();
+setInterval(()=>{if(S.ai&&S.ai.running&&!busy&&!document.querySelector('.sheet[style*=block]'))fetch('/list').then(r=>r.json()).then(j=>{const c=curItem();S=j;$('undobtn').disabled=!S.undo;tally();
+  const n=curItem();if(n&&c&&n.p===c.p&&JSON.stringify(n.ai)!==JSON.stringify(c.ai))render()})},15000);
+load();
+</script>
+</body></html>

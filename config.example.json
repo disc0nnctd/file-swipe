@@ -1,0 +1,62 @@
+{
+  "roots": [
+    "/path/to/source"
+  ],
+  "llm_url": "http://127.0.0.1:8084/v1/chat/completions",
+  "port": 8093,
+  "destinations": {
+    "movies": {
+      "label": "\ud83c\udfac Movies",
+      "dir": "/path/to/destinations/movies",
+      "note": "Destination for movies"
+    },
+    "shows": {
+      "label": "\ud83d\udcfa Shows",
+      "dir": "/path/to/destinations/shows",
+      "note": "Destination for shows"
+    },
+    "games": {
+      "label": "\ud83c\udfae Games",
+      "dir": "/path/to/destinations/games",
+      "note": "Destination for games"
+    },
+    "music": {
+      "label": "\ud83c\udfb5 Music",
+      "dir": "/path/to/destinations/music",
+      "note": "Destination for music"
+    },
+    "trading": {
+      "label": "\ud83d\udcc8 Trading",
+      "dir": "/path/to/destinations/trading",
+      "note": "Destination for trading"
+    },
+    "photos": {
+      "label": "\ud83d\uddbc Photo Swipe",
+      "dir": "/path/to/destinations/photos",
+      "note": "Destination for photos"
+    },
+    "documents": {
+      "label": "\ud83d\udcc4 Documents",
+      "dir": "/path/to/destinations/documents",
+      "note": "Destination for documents"
+    },
+    "software": {
+      "label": "\ud83d\udcbf Software",
+      "dir": "/path/to/destinations/software",
+      "note": "Destination for software"
+    },
+    "archive": {
+      "label": "\ud83d\udce6 Archive",
+      "dir": "/path/to/destinations/archive",
+      "note": "Destination for archive",
+      "keep_path": true
+    }
+  },
+  "auto_split": "^(movies?|films?|series|shows?|tv|anime|games?|software|apps|programs|other|misc|downloads|movies_series|laptop)$",
+  "skip_names": [
+    "System Volume Information",
+    "Autorun.inf",
+    "msdownld.tmp",
+    "_fileswipe_trash"
+  ]
+}
